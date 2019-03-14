@@ -25,8 +25,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.mapslocalization.Models.PlaceInfo;
-import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.GoogleApi;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -347,8 +345,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         switch (requestCode){
             case LOCATION_PERMISSION_REQUEST_CODE:{
                 if (grantResults.length > 0){
-                    for (int i = 0; i < grantResults.length; i++){
-                        if (grantResults[i] != PackageManager.PERMISSION_GRANTED){
+                    for (int grantResult : grantResults) {
+                        if (grantResult != PackageManager.PERMISSION_GRANTED) {
                             mLocationPermissionsGranted = false;
                             Log.d(TAG, "onRequestPermissionsResult: Permissions were not granted");
                             return;
