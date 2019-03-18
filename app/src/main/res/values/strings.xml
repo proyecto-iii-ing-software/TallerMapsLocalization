@@ -1,4 +1,3 @@
 <resources>
-    <string name="google_maps_API_key">AIzaSyB5VRAr87ooASAwuauUOzMYG41CXdaicPE </string>
     <string name="app_name">MapsLocalization</string>
 </resources>
