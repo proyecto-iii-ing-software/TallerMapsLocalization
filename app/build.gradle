@@ -8,6 +8,7 @@ android {
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         resValue "string", "google_api_key", (project.findProperty("GOOGLE_API_KEY") ?: "AIzaSyAXErGvnzOgOEyFUcLNhzO2BWIDWpzQiZ0")
     }
@@ -42,8 +43,12 @@ dependencies {
 
     //Google Directions API
     implementation 'com.google.maps:google-maps-services:0.9.2'
-    testImplementation 'junit:junit:4.12'
+    implementation 'org.slf4j:slf4j-nop:1.7.25'
 
+    // Support multidex
+    implementation 'com.android.support:multidex:1.0.3'
+
+    testImplementation 'junit:junit:4.12'
     implementation 'com.android.support:multidex:1.0.3'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

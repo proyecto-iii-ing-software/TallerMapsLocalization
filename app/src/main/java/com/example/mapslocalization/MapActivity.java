@@ -4,10 +4,14 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -23,47 +27,29 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import com.example.mapslocalization.directionsHelpers.FetchURL;
-import com.example.mapslocalization.directionsHelpers.TaskLoadedCallback;
-import com.example.mapslocalization.models.ClusterMarker;
-import com.example.mapslocalization.util.ClusterManagerRenderer;
-import com.google.android.gms.common.api.GoogleApi;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.places.PlaceReport;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.model.TypeFilter;
-import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
-import com.google.maps.DirectionsApiRequest;
-import com.google.maps.GeoApiContext;
-import com.google.maps.PendingResult;
-import com.google.maps.android.clustering.ClusterManager;
-import com.google.maps.model.DirectionsResult;
-
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
@@ -80,28 +66,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private ImageView mGPS;
     private ImageView mInfo;
 
-    private CardView pCardView;
-
-    //Cluster vars
-    private ClusterManager<ClusterMarker> mClusterManager;
-    private ClusterManagerRenderer mClusterManagerRenderer;
-    private List<ClusterMarker> mClusterMarkers = new LinkedList<>();
-
     private Marker mMarker;
-    private MarkerOptions markerOptions, place1, place2;
 
     //vars
     private Boolean mLocationPermissionsGranted = false;
     private GoogleMap mMap;
-    private LatLngBounds mMapBoundary;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private AutocompleteSupportFragment autocompleteFragment;
-    private GoogleApi mGoogleApi;
+
     //Places API
     private PlacesClient placesClient;
-    //Directions API
-    private Polyline currentPolyline;
-    private GeoApiContext mGeoApiContext = null;
+
     //User location
     private LatLng userLatLng;
 
@@ -142,8 +117,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mSearchText = findViewById(R.id.input_search);
         mGPS = findViewById(R.id.ic_gps);
         mInfo = findViewById(R.id.place_info);
-        pCardView = findViewById(R.id.idCardView);
-
         getLocationPermission();
         init_PlacesClient();
     }
@@ -400,13 +373,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     */
 
     @Override
-    public void onInfoWindowClick(Marker marker) {
-        Toast.makeText(this, "Marker: " + marker.getSnippet(), Toast.LENGTH_LONG).show();
+    public void onInfoWindowClick(final Marker marker) {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(marker.getSnippet())
                 .setCancelable(true)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+
                         dialog.dismiss();
                     }
                 })
