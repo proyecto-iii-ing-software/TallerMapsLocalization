@@ -9,8 +9,8 @@ android {
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         resValue "string", "google_api_key", (project.findProperty("GOOGLE_API_KEY") ?: "AIzaSyAXErGvnzOgOEyFUcLNhzO2BWIDWpzQiZ0")
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
@@ -47,6 +47,9 @@ dependencies {
 
     // Support multidex
     implementation 'com.android.support:multidex:1.0.3'
+
+    //Library for Directions
+    implementation 'com.github.jd-alexander:library:1.1.0'
 
     testImplementation 'junit:junit:4.12'
     implementation 'com.android.support:multidex:1.0.3'

@@ -1,3 +1,5 @@
 <resources>
+
+    <string name="google_directionsapi_key">AIzaSyAnavbdkxtMDIris_BiQGehUSQXDwIRXmg</string>
     <string name="app_name">MapsLocalization</string>
 </resources>

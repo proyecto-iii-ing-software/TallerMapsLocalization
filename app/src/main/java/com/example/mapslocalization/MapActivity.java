@@ -27,6 +27,12 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.directions.route.AbstractRouting;
+import com.directions.route.Route;
+import com.directions.route.RouteException;
+import com.directions.route.Routing;
+import com.directions.route.RoutingListener;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -34,15 +40,20 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompletePrediction;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.model.TypeFilter;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 
@@ -54,7 +65,7 @@ import java.util.List;
 import static android.Manifest.permission.ACCESS_FINE_LOCATION;
 
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener, View.OnClickListener {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnInfoWindowClickListener, View.OnClickListener, RoutingListener {
     private static final String TAG = "MapActivity";
     private static final String FINE_LOCATION = ACCESS_FINE_LOCATION;
     private static final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
@@ -70,14 +81,24 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     //vars
     private Boolean mLocationPermissionsGranted = false;
-    private GoogleMap mMap;
     private FusedLocationProviderClient mFusedLocationProviderClient;
+
+    //Vars for Google API Client
+    private GoogleApiClient mGoogleApiClient;
+
+    //Vars for Maps API
+    private GoogleMap mMap;
+
+    //Vars for Directions API
+    private List<Polyline> polylines;
+    private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
+
+
+    //Vars for Places API
+    private PlacesClient placesClient;
     private AutocompleteSupportFragment autocompleteFragment;
 
-    //Places API
-    private PlacesClient placesClient;
-
-    //User location
+    //Vars for User location
     private LatLng userLatLng;
 
     public LatLng getUserLatLng() {
@@ -87,6 +108,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     public void setUserLatLng(LatLng userLatLng) {
         this.userLatLng = userLatLng;
     }
+
+
+    protected synchronized void buildGoogleApiClient(){
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -113,6 +143,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(@Nullable Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        polylines = new ArrayList<>();
 
         mSearchText = findViewById(R.id.input_search);
         mGPS = findViewById(R.id.ic_gps);
@@ -237,6 +269,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         "\nLatLng: " + place.getLatLng() +
                         "\nPrice Ratings: " + place.getRating() +
                         "\nOpening Hours: " + place.getOpeningHours();
+
+
                 MarkerOptions options = new MarkerOptions().position(latLng).title(place.getName()).snippet(snippet);
                 mMarker = mMap.addMarker(options);
                 mMap.addMarker(options);
@@ -350,8 +384,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(@NonNull Place place) {
-                // TODO: Get info about the selected place.
-                //
+                // Get info about the selected place.
                 mSearchText.setText(place.getName());
                 //geoLocate(place);
                 moveCamera(place.getLatLng(), DEFAULT_ZOOM, place);
@@ -372,14 +405,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         **************************************************************************************************************
     */
 
+
     @Override
     public void onInfoWindowClick(final Marker marker) {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(marker.getSnippet())
+        builder.setMessage("Need some directions to go there?")
                 .setCancelable(true)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-
+                        getRouteToDestination(marker.getPosition());
                         dialog.dismiss();
                     }
                 })
@@ -392,12 +426,77 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         alert.show();
     }
 
+    private void getRouteToDestination(LatLng destinationMarker) {
+        String apiKey = getString(R.string.google_directionsapi_key);
+        Routing routing = new Routing.Builder()
+                .travelMode(AbstractRouting.TravelMode.DRIVING)
+                .withListener(this)
+                .alternativeRoutes(true)
+                .waypoints(new LatLng(getUserLatLng().latitude, getUserLatLng().longitude), destinationMarker)
+                .key(apiKey)
+                .build();
+        routing.execute();
+    }
+
     @Override
     public void onClick(View v) {
 
     }
 
+    @Override
+    public void onRoutingFailure(RouteException e) {
+        if (e != null){
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }else{
+            Toast.makeText(this, "Something went wrong :(, Try again! " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
 
+    @Override
+    public void onRoutingStart() {
+
+    }
+
+    @Override
+    public void onRoutingSuccess(ArrayList<Route> route, int shortestRouteIndex) {
+        if(polylines.size()>0) {
+            for (Polyline poly : polylines) {
+                poly.remove();
+            }
+        }
+
+        polylines = new ArrayList<>();
+        //add route(s) to the map.
+        for (int i = 0; i <route.size(); i++) {
+
+            //In case of more than 5 alternative routes
+            int colorIndex = i % COLORS.length;
+
+            PolylineOptions polyOptions = new PolylineOptions();
+            polyOptions.color(getResources().getColor(COLORS[colorIndex]));
+            polyOptions.width(10 + i * 3);
+            polyOptions.addAll(route.get(i).getPoints());
+            Polyline polyline = mMap.addPolyline(polyOptions);
+            polylines.add(polyline);
+
+            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance: "+ route.get(i).getDistanceValue()/1000+ " km" + ": duration: "+ route.get(i).getDurationValue()/60 + " min",Toast.LENGTH_SHORT).show();
+        }
+
+        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 7));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(9),2000,null);
+    }
+
+    @Override
+    public void onRoutingCancelled() {
+        erasePolylines();
+    }
+
+    private  void erasePolylines(){
+        for(Polyline line: polylines){
+            line.remove();
+        }
+        polylines.clear();
+    }
     /*
         ********************************************************************************************
         **************************************Custom Markers****************************************
