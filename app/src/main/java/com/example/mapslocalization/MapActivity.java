@@ -467,7 +467,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             Polyline polyline = mMap.addPolyline(polyOptions);
             polylines.add(polyline);
 
-            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance: "+ route.get(i).getDistanceValue()/1000+ " km" + ": duration: "+ route.get(i).getDurationValue()/60 + " min",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance: "+ ((float) route.get(i).getDistanceValue()/1000 )+ " km" + ": duration: "+ ((float) route.get(i).getDurationValue()/60) + " min",Toast.LENGTH_SHORT).show();
         }
 
         //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 7));
