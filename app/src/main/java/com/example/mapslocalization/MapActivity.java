@@ -83,9 +83,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Boolean mLocationPermissionsGranted = false;
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
-    //Vars for Google API Client
-    private GoogleApiClient mGoogleApiClient;
-
     //Vars for Maps API
     private GoogleMap mMap;
 
@@ -101,22 +98,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     //Vars for User location
     private LatLng userLatLng;
 
-    public LatLng getUserLatLng() {
+    private LatLng getUserLatLng() {
         return userLatLng;
     }
 
-    public void setUserLatLng(LatLng userLatLng) {
+    private void setUserLatLng(LatLng userLatLng) {
         this.userLatLng = userLatLng;
     }
-
-
-    protected synchronized void buildGoogleApiClient(){
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(LocationServices.API)
-                .build();
-        mGoogleApiClient.connect();
-    }
-
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
